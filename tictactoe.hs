@@ -79,11 +79,19 @@ won [O, _, _, _, O, _, _, _, O] 	= (True, O)
 won [_, _, O, _, O, _, O, _, _] 	= (True, O)
 won _								= (False, Z)
 
+-- returns if full
+full		::	[Player] -> Bool
+full []		= True
+full (Z:xs)	= False
+full (_:xs)	= True && full xs
+
 -- check if game ended, then who won
 ended			:: [Player] -> (Bool, Player)
 ended xs		= if (fst (won xs)) then (won xs)
-					else if (canWin xs) then (False, Z)
-						else (True, Z)
+--					else if (canWin xs) then (False, Z)
+--						else (True, Z)
+					else if (full xs) then (True, Z)
+						else (False, Z)
 
 -- highlight the box with given coordinates
 highlight_		:: Int -> Int -> IO ()
@@ -336,7 +344,7 @@ check p x y z
 -- board assessment for bot, calc weight of choice
 weight			:: [Player] -> Player -> Int -> Int
 weight xs p i	= if not (wut (xs !! i) == 'Z') then -9999	-- invalid choice
-	else sum [check p (n !! x) (n !! y) (n !! z) | [x, y, z] <- map pttrns [1..8]]
+	else sum [check p (n !! x) (n !! y) (n !! z) | [x, y, z] <- map pattern [1..8]]
 	where 	z = switch p;
 			n = change xs p i
 
@@ -366,7 +374,7 @@ pick			= do
 -- placeholder
 play 			:: [Player] -> Player -> Int -> Int -> IO ()
 play xs p i 0	= do
-	display xs t i
+	display xs (ended xs) i
 	goto 01 01
 	x <- getChar
 	if x == 'w' || x == 'W' then
