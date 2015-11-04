@@ -6,9 +6,6 @@ Haskell Tic-Tac-Toe
 module Main
 where
 
-import Data.List
-import Data.Ord
-
 data Player	= X | O | Z
 
 -- generate a new board
@@ -288,7 +285,7 @@ pttrns 0		= [1,4,7]
 pttrns 1		= [1,5]
 pttrns 2		= [1,6,8]
 pttrns 3		= [2,4]
-pttrns 4		= [2,5,8]
+pttrns 4		= [2,5,7,8]
 pttrns 5		= [2,6]
 pttrns 6		= [3,4,8]
 pttrns 7		= [3,5]
@@ -333,6 +330,7 @@ check p x y z
     | (cmp p x)     && (cmp Z y)    && (cmp z Z)    = 1
     | (cmp Z x)     && (cmp Z y)    && (cmp p z)    = 1
     | (cmp Z x)     && (cmp p y)    && (cmp Z z)    = 1
+    | otherwise										= 0
     where p2 = switch p
 
 -- board assessment for bot, calc weight of choice
@@ -343,8 +341,13 @@ weight xs p i	= if not (wut (xs !! i) == 'Z') then -9999	-- invalid choice
 			n = change xs p i
 
 -- get the position of the highest value in a list
--- copied straight outta stackoverflow
-maxi xs = fst (maximumBy (comparing fst) (zip xs [0..]))
+maxi 	:: [Int] -> Int
+maxi xs = maxih xs (0-1) (0-99999) 0
+
+maxih	:: [Int] -> Int -> Int -> Int -> Int
+maxih [] x _ _		= x
+maxih (x:xs) y z i 	| x > z 	= maxih xs i x (i + 1)
+					| otherwise = maxih xs y z (i + 1)
 
 -- begin stage, ask for whether going first
 pick			:: IO ()
@@ -379,23 +382,25 @@ play xs p i 0	= do
 		if i `mod` 3 == 2 then play xs p (i - 2) 0
 		else play xs p (i + 1) 0
 	else if x == '\n' then
-		if wut (xs !! i) == 'Z' then
+		if wut (xs !! i) == 'Z' then do
+			display n t i
+			goto 01 01
 			if b then return()
 			else play n (switch p) i 1
 		else play xs p i 0
 	else play xs p i 0
 	where 	n = change xs p i;	-- n for new board, not natural number
-			t = ended xs;		-- t for temp pair, not time
+			t = ended n;		-- t for temp pair, not time
 			b = fst t 			-- b for boolean, nothing strange
 play xs p i 1	= do 
 	display xs1 t i
 	goto 01 01
 	if b then return()
 	-- CHANGE XS
-	else play xs (switch p) i 0
-	where 	xs1 = change xs p (maxi [weight xs p j | j <- [0..8]]);
-                     t = ended xs1;
-			b = fst t
+	else play xs1 (switch p) i 0
+	where xs1 = change xs p (maxi [weight xs p j | j <- [0..8]]);
+            	t = ended xs1;
+				b = fst t
 
 -- test function: print out the board, only for debugging purposes
 toStr			:: [Player] -> [Char]
