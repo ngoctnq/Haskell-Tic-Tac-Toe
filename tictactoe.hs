@@ -35,6 +35,10 @@ wut X 		= 'X'
 wut O 		= 'O'
 wut Z 		= 'Z'
 
+-- comparing players with wut
+cmp 		:: Player -> Player -> Bool
+cmp x y 	= wut x == wut y
+
 -- clrscr
 cls 			:: IO ()
 cls 			= do
@@ -75,11 +79,19 @@ won [O, _, _, _, O, _, _, _, O] 	= (True, O)
 won [_, _, O, _, O, _, O, _, _] 	= (True, O)
 won _								= (False, Z)
 
+-- returns if full
+full		::	[Player] -> Bool
+full []		= True
+full (Z:xs)	= False
+full (_:xs)	= True && full xs
+
 -- check if game ended, then who won
 ended			:: [Player] -> (Bool, Player)
 ended xs		= if (fst (won xs)) then (won xs)
-					else if (canWin xs) then (False, Z)
-						else (True, Z)
+--					else if (canWin xs) then (False, Z)
+--						else (True, Z)
+					else if (full xs) then (True, Z)
+						else (False, Z)
 
 -- highlight the box with given coordinates
 highlight_		:: Int -> Int -> IO ()
@@ -264,6 +276,87 @@ display xs (b, p) i = do
 							highlight i
 						where t = wut p
 
+-- pattern of winning
+pattern 		:: Int -> [Int]
+pattern 1		= [0,1,2]
+pattern 2		= [3,4,5]
+pattern 3		= [6,7,8]
+pattern 4		= [0,3,6]
+pattern 5		= [1,4,7]
+pattern 6		= [2,5,8]
+pattern 7		= [0,4,8]
+pattern 8		= [2,4,6]
+
+-- relevant patterns of a move
+pttrns 			:: Int -> [Int]
+pttrns 0		= [1,4,7]
+pttrns 1		= [1,5]
+pttrns 2		= [1,6,8]
+pttrns 3		= [2,4]
+pttrns 4		= [2,5,7,8]
+pttrns 5		= [2,6]
+pttrns 6		= [3,4,8]
+pttrns 7		= [3,5]
+pttrns 8		= [3,6,7]
+
+-- count the weight of each winning pattern
+-- normally winnable = 1
+-- two-filled = 3
+-- draw = 0
+-- normally losable = -1 // not implemented, wait to see if works without
+-- two-filled = -3
+check		 	:: Player -> Player -> Player -> Player -> Int
+{-
+check p p p p 	= 999
+check p p2 p2 p2= -999
+check p p p Z 	= 3
+check p p Z p 	= 3
+check p Z p p 	= 3
+check p p2 p2 Z = -3
+check p p2 Z p2 = -3
+check p Z p2 p2 = -3
+check p p p2 _	= 0
+check p p _ p2	= 0
+check p _ p p2 	= 0
+check p p2 p _	= 0
+check p p2 _ p	= 0
+check p _ p2 p 	= 0
+check p p Z Z 	= 1
+check p Z p Z 	= 1
+check p Z Z p 	= 1
+check _ _ _ _	= 0
+-}
+check p x y z
+    | (cmp p x)     && (cmp p y)    && (cmp p z)    = 999
+    | (cmp p2 x)    && (cmp p2 y)   && (cmp p2 z)   = -999
+    | (cmp p x)     && (cmp p y)    && (cmp z Z)    = 3
+    | (cmp p x)     && (cmp Z y)    && (cmp p z)    = 3
+    | (cmp Z x)     && (cmp p y)    && (cmp p z)    = 3
+    | (cmp p2 x)    && (cmp p2 y)   && (cmp z Z)    = -3
+    | (cmp p2 x)    && (cmp Z y)    && (cmp p2 z)   = -3
+    | (cmp Z x)     && (cmp p2 y)   && (cmp p2 z)   = -3
+    | (cmp p x)     && (cmp Z y)    && (cmp z Z)    = 1
+    | (cmp Z x)     && (cmp Z y)    && (cmp p z)    = 1
+    | (cmp Z x)     && (cmp p y)    && (cmp Z z)    = 1
+    | otherwise										= 0
+    where p2 = switch p
+
+-- board assessment for bot, calc weight of choice
+weight			:: [Player] -> Player -> Int -> Int
+weight xs p i	= if not (wut (xs !! i) == 'Z') then -9999	-- invalid choice
+	else sum [check p (n !! x) (n !! y) (n !! z) | [x, y, z] <- map pattern [1..8]]
+	where 	z = switch p;
+			n = change xs p i
+
+-- get the position of the highest value in a list
+maxi 	:: [Int] -> Int
+maxi xs = maxih xs (0-1) (0-99999) 0
+
+maxih	:: [Int] -> Int -> Int -> Int -> Int
+maxih [] x _ _		= x
+maxih (x:xs) y z i 	| x > z 	= maxih xs i x (i + 1)
+					| otherwise = maxih xs y z (i + 1)
+
 -- begin stage, ask for whether going first
 pick			:: IO ()
 pick			= do
@@ -281,7 +374,7 @@ pick			= do
 -- placeholder
 play 			:: [Player] -> Player -> Int -> Int -> IO ()
 play xs p i 0	= do
-	display xs t i
+	display xs (ended xs) i
 	goto 01 01
 	x <- getChar
 	if x == 'w' || x == 'W' then
@@ -297,23 +390,25 @@ play xs p i 0	= do
 		if i `mod` 3 == 2 then play xs p (i - 2) 0
 		else play xs p (i + 1) 0
 	else if x == '\n' then
-		if wut (xs !! i) == 'Z' then
+		if wut (xs !! i) == 'Z' then do
+			display n t i
+			goto 01 01
 			if b then return()
 			else play n (switch p) i 1
 		else play xs p i 0
 	else play xs p i 0
 	where 	n = change xs p i;	-- n for new board, not natural number
-			t = ended xs;		-- t for temp pair, not time
+			t = ended n;		-- t for temp pair, not time
 			b = fst t 			-- b for boolean, nothing strange
 play xs p i 1	= do 
-	-- AI ALGORITHM HERE
-	display xs t i
+	display xs1 t i
 	goto 01 01
 	if b then return()
 	-- CHANGE XS
-	else play xs (switch p) i 0
-	where 	t = ended xs;
-			b = fst t
+	else play xs1 (switch p) i 0
+	where xs1 = change xs p (maxi [weight xs p j | j <- [0..8]]);
+            	t = ended xs1;
+				b = fst t
 
 -- test function: print out the board, only for debugging purposes
 toStr			:: [Player] -> [Char]
