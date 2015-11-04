@@ -35,6 +35,10 @@ wut X 		= 'X'
 wut O 		= 'O'
 wut Z 		= 'Z'
 
+-- comparing players with wut
+cmp 		:: Player -> Player -> Bool
+cmp x y 	= wut x == wut y
+
 -- clrscr
 cls 			:: IO ()
 cls 			= do
@@ -263,6 +267,63 @@ display xs (b, p) i = do
 							putStr "Your turn."
 							highlight i
 						where t = wut p
+
+-- pattern of winning
+pattern 		:: Int -> [Int]
+pattern 1		= [0,1,2]
+pattern 2		= [3,4,5]
+pattern 3		= [6,7,8]
+pattern 4		= [0,3,6]
+pattern 5		= [1,4,7]
+pattern 6		= [2,5,8]
+pattern 7		= [0,4,8]
+pattern 8		= [2,4,6]
+
+-- relevant patterns of a move
+pttrns 			:: Int -> [Int]
+pttrns 0		= [1,4,7]
+pttrns 1		= [1,5]
+pttrns 2		= [1,6,8]
+pttrns 3		= [2,4]
+pttrns 4		= [2,5,8]
+pttrns 5		= [2,6]
+pttrns 6		= [3,4,8]
+pttrns 7		= [3,5]
+pttrns 8		= [3,6,7]
+
+-- count the weight of each winning pattern
+-- normally winnable = 1
+-- two-filled = 3
+-- draw = 0
+-- normally losable = -1 // not implemented, wait to see if works without
+-- two-filled = -3
+check		 	:: Player -> Player -> Player -> Player -> Int
+check p p p p 	= 999
+check p p2 p2 p2= -999
+check p p p Z 	= 3
+check p p Z p 	= 3
+check p Z p p 	= 3
+check p p2 p2 Z = -3
+check p p2 Z p2 = -3
+check p Z p2 p2 = -3
+check p p p2 _	= 0
+check p p _ p2	= 0
+check p _ p p2 	= 0
+check p p2 p _	= 0
+check p p2 _ p	= 0
+check p _ p2 p 	= 0
+check p p Z Z 	= 1
+check p Z p Z 	= 1
+check p Z Z p 	= 1
+check _ _ _ _	= 0
+	where p2 = switch p
+
+-- board assessment for bot, calc weight of choice
+weight			:: [Player] -> Player -> Int -> Int
+weight xs p i	= if not (wut (xs !! i) == 'Z') then -9999	-- invalid choice
+	else sum [check p (n !! x) (n !! y) (n !! z) | [x, y, z] <- map pttrns [1..8]]
+	where 	z = switch p;
+			n = change xs p i
 
 -- begin stage, ask for whether going first
 pick			:: IO ()
