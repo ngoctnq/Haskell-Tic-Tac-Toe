@@ -6,6 +6,9 @@ Haskell Tic-Tac-Toe
 module Main
 where
 
+import Data.List
+import Data.Ord
+
 data Player	= X | O | Z
 
 -- generate a new board
@@ -298,6 +301,7 @@ pttrns 8		= [3,6,7]
 -- normally losable = -1 // not implemented, wait to see if works without
 -- two-filled = -3
 check		 	:: Player -> Player -> Player -> Player -> Int
+{-
 check p p p p 	= 999
 check p p2 p2 p2= -999
 check p p p Z 	= 3
@@ -316,7 +320,20 @@ check p p Z Z 	= 1
 check p Z p Z 	= 1
 check p Z Z p 	= 1
 check _ _ _ _	= 0
-	where p2 = switch p
+-}
+check p x y z
+    | (cmp p x)     && (cmp p y)    && (cmp p z)    = 999
+    | (cmp p2 x)    && (cmp p2 y)   && (cmp p2 z)   = -999
+    | (cmp p x)     && (cmp p y)    && (cmp z Z)    = 3
+    | (cmp p x)     && (cmp Z y)    && (cmp p z)    = 3
+    | (cmp Z x)     && (cmp p y)    && (cmp p z)    = 3
+    | (cmp p2 x)    && (cmp p2 y)   && (cmp z Z)    = -3
+    | (cmp p2 x)    && (cmp Z y)    && (cmp p2 z)   = -3
+    | (cmp Z x)     && (cmp p2 y)   && (cmp p2 z)   = -3
+    | (cmp p x)     && (cmp Z y)    && (cmp z Z)    = 1
+    | (cmp Z x)     && (cmp Z y)    && (cmp p z)    = 1
+    | (cmp Z x)     && (cmp p y)    && (cmp Z z)    = 1
+    where p2 = switch p
 
 -- board assessment for bot, calc weight of choice
 weight			:: [Player] -> Player -> Int -> Int
@@ -324,6 +341,10 @@ weight xs p i	= if not (wut (xs !! i) == 'Z') then -9999	-- invalid choice
 	else sum [check p (n !! x) (n !! y) (n !! z) | [x, y, z] <- map pttrns [1..8]]
 	where 	z = switch p;
 			n = change xs p i
+
+-- get the position of the highest value in a list
+-- copied straight outta stackoverflow
+maxi xs = fst (maximumBy (comparing fst) (zip xs [0..]))
 
 -- begin stage, ask for whether going first
 pick			:: IO ()
@@ -367,13 +388,13 @@ play xs p i 0	= do
 			t = ended xs;		-- t for temp pair, not time
 			b = fst t 			-- b for boolean, nothing strange
 play xs p i 1	= do 
-	-- AI ALGORITHM HERE
-	display xs t i
+	display xs1 t i
 	goto 01 01
 	if b then return()
 	-- CHANGE XS
 	else play xs (switch p) i 0
-	where 	t = ended xs;
+	where 	xs1 = change xs p (maxi [weight xs p j | j <- [0..8]]);
+                     t = ended xs1;
 			b = fst t
 
 -- test function: print out the board, only for debugging purposes
