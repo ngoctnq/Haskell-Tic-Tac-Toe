@@ -264,14 +264,14 @@ display xs (b, p) i = do
                         goto 01 25
                         if b then do
                             if t == 'Z' then putStr "Game ended, no one won. Nice try though."
-                            else do
+                             else do
                                 putStr "You lost. Told you."
                                 -- regardless of X or O, the human WILL NOT WIN.
                                 highlightwon xs
                             goto 01 01
                             x <- getChar
                             cls
-                        else do
+                         else do
                             putStr "Your turn."
                             highlight i
                         where t = wut p
@@ -380,23 +380,23 @@ play xs p i 0   = do
     if x == 'w' || x == 'W' then
         if i < 3 then play xs p (i + 6) 0
         else play xs p (i - 3) 0
-    else if x == 's' || x == 'S' then
+     else if x == 's' || x == 'S' then
         if i > 5 then play xs p (i - 6) 0
         else play xs p (i + 3) 0
-    else if x == 'a' || x == 'A' then
+     else if x == 'a' || x == 'A' then
         if i `mod` 3 == 0 then play xs p (i + 2) 0
         else play xs p (i - 1) 0
-    else if x == 'd' || x == 'D' then
+     else if x == 'd' || x == 'D' then
         if i `mod` 3 == 2 then play xs p (i - 2) 0
         else play xs p (i + 1) 0
-    else if x == '\n' then
+     else if x == '\n' then
         if wut (xs !! i) == 'Z' then do
             display n t i
             goto 01 01
             if b then return()
-            else play n (switch p) i 1
+             else play n (switch p) i 1
         else play xs p i 0
-    else play xs p i 0
+     else play xs p i 0
     where   n = change xs p i;  -- n for new board, not natural number
             t = ended n;        -- t for temp pair, not time
             b = fst t           -- b for boolean, nothing strange
@@ -405,7 +405,7 @@ play xs p i 1   = do
     goto 01 01
     if b then return()
     -- CHANGE XS
-    else play xs1 (switch p) i 0
+     else play xs1 (switch p) i 0
     where xs1 = change xs p (maxi [weight xs p j | j <- [0..8]]);
                 t = ended xs1;
                 b = fst t
@@ -420,5 +420,5 @@ main = do
     pick
     x <- getChar
     if x == 'f' || x == 'F' then play board X 0 0
-    else if x == 's' || x == 'S' then play board X 0 1
-    else main
+     else if x == 's' || x == 'S' then play board X 0 1
+     else main
