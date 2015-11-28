@@ -338,6 +338,9 @@ check p x y z
     | (cmp p x)     && (cmp Z y)    && (cmp z Z)    = 1
     | (cmp Z x)     && (cmp Z y)    && (cmp p z)    = 1
     | (cmp Z x)     && (cmp p y)    && (cmp Z z)    = 1
+    | (cmp p2 x)    && (cmp Z y)    && (cmp z Z)    = -1
+    | (cmp Z x)     && (cmp Z y)    && (cmp p2 z)   = -1
+    | (cmp Z x)     && (cmp p2 y)   && (cmp Z z)    = -1
     | otherwise                                     = 0
     where p2 = switch p
 
